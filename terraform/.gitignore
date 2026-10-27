@@ -1,0 +1,11 @@
+# Terraform state — never commit these
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# .terraform.lock.hcl is intentionally NOT ignored
+# It locks provider versions for reproducible builds — commit it like package-lock.json
+
+# kubeconfig written by kind provider
+kubeconfig

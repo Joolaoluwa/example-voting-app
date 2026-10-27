@@ -1,0 +1,66 @@
+# -------------------------------------------------------
+# Global replica count for all deployments
+# -------------------------------------------------------
+replicaCount: 1
+
+# -------------------------------------------------------
+# vote — Python Flask frontend
+# -------------------------------------------------------
+vote:
+  image:
+    repository: voting-app/vote
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8080
+    targetPort: 80
+    nodePort: 30000
+
+# -------------------------------------------------------
+# result — Node.js results frontend
+# -------------------------------------------------------
+result:
+  image:
+    repository: voting-app/result
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8081
+    targetPort: 80
+    nodePort: 30001
+
+# -------------------------------------------------------
+# worker — .NET background processor
+# -------------------------------------------------------
+worker:
+  image:
+    repository: voting-app/worker
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+# -------------------------------------------------------
+# redis — message queue (official image)
+# -------------------------------------------------------
+redis:
+  image:
+    repository: redis
+    tag: "alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 6379
+
+# -------------------------------------------------------
+# db — PostgreSQL (official image)
+# -------------------------------------------------------
+db:
+  image:
+    repository: postgres
+    tag: "15-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 5432
+  env:
+    postgresUser: postgres
+    postgresPassword: postgres

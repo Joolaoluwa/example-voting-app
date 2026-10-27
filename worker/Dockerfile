@@ -8,21 +8,29 @@
 # docker buildx build --platform "linux/arm64/v8" .
 
 # build compiles the program for the builder's local platform
-FROM --platform=${BUILDPLATFORM} mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM --platform=${BUILDPLATFORM} mcr.microsoft.com/dotnet/sdk:7.0@sha256:d32bd65cf5843f413e81f5d917057c82da99737cb1637e905a1a4bc2e7ec6c8d AS build
 ARG TARGETPLATFORM
 ARG TARGETARCH
 ARG BUILDPLATFORM
 RUN echo "I am running on $BUILDPLATFORM, building for $TARGETPLATFORM"
+RUN groupadd -g 1015 workerGroup \
+    && useradd --no-log-init -u 1015 -g workerGroup -m -s /usr/sbin/nologin workerUser
 
 WORKDIR /source
 COPY *.csproj .
 RUN dotnet restore -a $TARGETARCH
 
-COPY . .
+COPY --chown=workerUser:workerGroup . .
 RUN dotnet publish -c release -o /app -a $TARGETARCH --self-contained false --no-restore
 
+USER workerUser
 # app image
-FROM mcr.microsoft.com/dotnet/runtime:7.0
+FROM mcr.microsoft.com/dotnet/runtime:7.0@sha256:8cd26108e7a329458e5b84342816ae39b2b38bd041cfdc0b79b8cf1c0e0d376f
+
+RUN groupadd -g 1015 workerGroup \
+    && useradd --no-log-init -u 1015 -g workerGroup -m -s /usr/sbin/nologin workerUser
 WORKDIR /app
-COPY --from=build /app .
+
+USER workerUser
+COPY --from=build --chown=workerUser:workerGroup /app .
 ENTRYPOINT ["dotnet", "Worker.dll"]
