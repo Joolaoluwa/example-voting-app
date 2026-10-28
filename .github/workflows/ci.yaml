@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # Replace with your actual GitHub username
-  IMAGE_PREFIX: ghcr.io/Joolaoluwa
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
 
@@ -52,7 +52,7 @@ jobs:
           load: true
 
       - name: Trivy scan — vote
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}/vote:${{ github.sha }}
           format: table
@@ -93,7 +93,7 @@ jobs:
           load: true
 
       - name: Trivy scan — result
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}/result:${{ github.sha }}
           format: table
@@ -134,7 +134,7 @@ jobs:
           load: true
 
       - name: Trivy scan — worker
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}/worker:${{ github.sha }}
           format: table
