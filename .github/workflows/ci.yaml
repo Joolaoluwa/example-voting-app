@@ -1,0 +1,143 @@
+name: CI — Build, Scan and Push
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  # Replace with your actual GitHub username
+  IMAGE_PREFIX: ghcr.io/Joolaoluwa
+
+jobs:
+
+  # -------------------------------------------------------
+  # JOB 1: Build, scan and push the vote image
+  # -------------------------------------------------------
+  vote:
+    name: Vote — Build, Scan, Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write   # needed to upload Trivy SARIF results
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build vote image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./vote
+          target: final
+          # push only on main branch, not on PRs
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          # tag with both the commit SHA (traceable) and latest (convenience)
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/vote:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/vote:latest
+          # load into local Docker daemon so Trivy can scan it
+          load: true
+
+      - name: Trivy scan — vote
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/vote:${{ github.sha }}
+          format: table
+          exit-code: 1           # fail the pipeline if CRITICAL vulns found
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true   # skip vulns with no available fix
+
+  # -------------------------------------------------------
+  # JOB 2: Build, scan and push the result image
+  # -------------------------------------------------------
+  result:
+    name: Result — Build, Scan, Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build result image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./result
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/result:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/result:latest
+          load: true
+
+      - name: Trivy scan — result
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/result:${{ github.sha }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+  # -------------------------------------------------------
+  # JOB 3: Build, scan and push the worker image
+  # -------------------------------------------------------
+  worker:
+    name: Worker — Build, Scan, Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./worker
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/worker:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/worker:latest
+          load: true
+
+      - name: Trivy scan — worker
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/worker:${{ github.sha }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
